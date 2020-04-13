@@ -4,6 +4,7 @@ from PyQt5.QtCore import *
 import sys
 import random
 import sonsözlük
+from sonsözlük import *
 
 class Pencere2(QMainWindow):
     def __init__(self):
@@ -28,10 +29,12 @@ class Pencere2(QMainWindow):
         self.sil = QPushButton("Kelimeleri Sil")
         self.table = QTableWidget()
         #self.table.setRowCount(4)
-        self.table.setColumnCount(4)
+        self.table.setColumnCount(3)
+        self.bilgi = QLabel()
 
         self.v_box2.addWidget(self.getir)
         self.v_box2.addWidget(self.sil)
+        self.v_box2.addWidget(self.bilgi)
         self.grup1.setLayout(self.v_box2)
 
         self.h_box2.addWidget(self.grup1)
@@ -49,24 +52,38 @@ class Pencere2(QMainWindow):
         kelime_listesi = sonsözlük.kütüphane.verileri_al()
         self.kelime_listesi_tmp = kelime_listesi
         self.kelime_sayisi = len(self.kelime_listesi_tmp)
+        self.bilgi.setText("""
+        #######################
+        Kelimeler başarılı bir şekilde çekildi.
+        Lütfen CTRL tuşuna baslılı 
+        tutarak silmek istediğiniz
+        kelime numaralarını işaretleyiniz..
+        #######################
+        """)
 
         for i in range (0, self.kelime_sayisi - 1):
             kelime = self.kelime_listesi_tmp[i]
-            self.check = QCheckBox()
+            #self.check = QCheckBox()
             self.table.setRowCount(self.kelime_sayisi)
-            self.table.setCellWidget(i, 0, self.check)
-            self.table.setItem(i,1, QTableWidgetItem(kelime.ingilizce))
-            self.table.setItem(i,2, QTableWidgetItem(kelime.türkçe))
-            self.table.setItem(i,3, QTableWidgetItem(str(kelime.zorluk)))
 
+            self.table.setItem(i,0, QTableWidgetItem(kelime.ingilizce))
+            self.table.setItem(i,1, QTableWidgetItem(kelime.türkçe))
+            self.table.setItem(i,2, QTableWidgetItem(str(kelime.zorluk)))
 
     def silme_function(self):
-        for i in range(self.table.rowCount()):
-            for j in range(self.table.columnCount()):
-                item = self.table.item(i,j)
-                if item.checkState() == QCheckBox.isChecked(True):
-                    self.sil = self.table.item(i,1).text()
-                    sonsözlük.kütüphane.verileri_sil(self.sil)
+        indexs=[] # silinecek indexleri range ile alıyoruz.
+        for item in self.table.selectedRanges():
+            indexs.extend(range(item.topRow(),item.bottomRow()+1))
+        for i in indexs:
+            kelime = self.kelime_listesi_tmp[i]
+            sonsözlük.kütüphane.verileri_sil(kelime.ingilizce)
+        self.bilgi.setText("""
+        ##########################
+        Kelimeler başarılı bir şekilde silindi.
+        Ekranı güncellemek için Getir butonuna basınız.
+        ##########################
+        """)
+
 
 class Pencere(QMainWindow):
     def __init__(self):
@@ -88,31 +105,35 @@ class Pencere(QMainWindow):
         self.türkce = QLineEdit()
         self.ingilizce = QLineEdit()
         self.zorluk = QLineEdit()
-        t1 = QLabel("Türkçe")
-        i2 = QLabel("İngilizce")
-        z3 = QLabel("Zorluk")
+        i1 = QLabel("İngilizce:")
+        t2 = QLabel("Türkçe:  ")
+        z3 = QLabel("Zorluk:   ")
         self.kaydet = QPushButton("Kaydet")
         self.kelime_list_info = QLabel()
 
         v_box1 = QVBoxLayout()
-        v_box1.addWidget(t1)
-        v_box1.addWidget(i2)
-        v_box1.addWidget(z3)
-        v_box1.addWidget(self.kaydet)
+        h_box1 = QHBoxLayout()
+        h_box2 = QHBoxLayout()
+        h_box3 = QHBoxLayout()
+        h_box4 = QHBoxLayout()
+
+        h_box1.addWidget(i1)
+        h_box1.addWidget(self.ingilizce)
+        h_box2.addWidget(t2)
+        h_box2.addWidget(self.türkce)
+        h_box3.addWidget(z3)
+        h_box3.addWidget(self.zorluk)
+        h_box4.addWidget(self.kaydet)
+        h_box4.addWidget(self.kelime_list_info)
+
+        v_box1.addLayout(h_box1)
+        v_box1.addLayout(h_box2)
+        v_box1.addLayout(h_box3)
+        v_box1.addLayout(h_box4)
 
 
-        v_box2 = QVBoxLayout()
-        v_box2.addWidget(self.türkce)
-        v_box2.addWidget(self.ingilizce)
-        v_box2.addWidget(self.zorluk)
-        v_box2.addWidget(self.kelime_list_info)
 
-        h_box = QHBoxLayout()
-        h_box.addLayout(v_box1)
-        h_box.addLayout(v_box2)
-
-
-        grup.setLayout(h_box)
+        grup.setLayout(v_box1)
 
         self.kaydet.clicked.connect(self.kelime_kaydet_function)
         return grup
@@ -178,12 +199,12 @@ class Pencere(QMainWindow):
         if (self.cevap.text() == self.kelime.türkçe):
             self.puan = self.puan + 10 * self.kelime.zorluk
             self.toplam_puan.setText("Toplam Puan:" + str(self.puan))
-            self.degerlendirme.setText("Değerlendirme: Doğru Cevap Aldığınız Puan:" + str(self.x))
+            self.degerlendirme.setText("Değerlendirme: Doğru Cevap Aldığınız Puan:" + str(10 * self.kelime.zorluk))
             self.yeni_kelime_function()
         elif (self.cevap.text() != self.kelime.türkçe):
             self.puan = self.puan - 10 * self.kelime.zorluk
             self.toplam_puan.setText("Toplam Puan:" + str(self.puan))
-            self.degerlendirme.setText("Değerlendirme: Yanlış Cevap Kaybettiğiniz Puan:" + str(self.x) + "    DOĞRU CEVAP: " + self.kelime.türkçe)
+            self.degerlendirme.setText("Değerlendirme: Yanlış Cevap Kaybettiğiniz Puan:" + str(10 * self.kelime.zorluk) + "    DOĞRU CEVAP: " + self.kelime.türkçe)
             self.yeni_kelime_function()
 
     def kelime_ekle_function(self):
